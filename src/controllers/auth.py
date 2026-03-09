@@ -41,7 +41,8 @@ def login():
         message="Login successful",
         user={
             "id": str(user.id),
-            "name": user.name
+            "name": user.name,
+            "email": user.email
         }
     )
     
