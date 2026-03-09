@@ -33,6 +33,10 @@ class Movie (db.Model):
         db.Text,
         nullable=True
     )
+    genre = db.Column(
+        db.String(255),
+        nullable=True
+    )
     user_id = db.Column(
         db.String(36),
         db.ForeignKey('user.id'),
@@ -56,6 +60,7 @@ class Movie (db.Model):
             'title': self.title,
             'release_date': self.release_date.isoformat() if self.release_date else None,
             'synopsis': self.synopsis,
+            'genre': self.genre,
             'rating': self.rating,
             'imgUrl': self.imgUrl,
             'roster': self.roster,

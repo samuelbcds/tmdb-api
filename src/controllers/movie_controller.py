@@ -7,18 +7,25 @@ from src.models.user import User
 from src.errors import error_response
 
 
-def update_existing_movie_rating(existing_movie, rating_user):
-    if rating_user is None:
+def update_existing_movie_rating(existing_movie, rating_user, genre=None):
+    should_update_genre = bool(genre and not existing_movie.genre)
+
+    if rating_user is None and not should_update_genre:
         return error_response(
             400,
             "Movie already exists. Provide rating_user to update it"
         )
 
-    existing_movie.rating_user = rating_user
+    if rating_user is not None:
+        existing_movie.rating_user = rating_user
+
+    if should_update_genre:
+        existing_movie.genre = genre
+
     db.session.commit()
 
     return jsonify({
-        'message': 'Movie already exists. rating_user updated successfully',
+        'message': 'Movie already exists. Data updated successfully',
         'movie': existing_movie.to_dict()
     }), 200
 
@@ -57,11 +64,13 @@ def create_movie():
     rating = data.get('rating')
     img_url = data.get('imgUrl')
     roster = data.get('roster')
+    genre = data.get('genre')
     user_id = data.get('user_id')
     rating_user = data.get('rating_user')
 
     title = _normalize_text(title)
     synopsis = _normalize_text(synopsis)
+    genre = _normalize_text(genre)
 
     if not title:
         return error_response(400, "Title is required")
@@ -90,12 +99,13 @@ def create_movie():
         existing_movie = _find_existing_movie(title=title, synopsis=synopsis)
 
         if existing_movie:
-            return update_existing_movie_rating(existing_movie, rating_user)
+            return update_existing_movie_rating(existing_movie, rating_user, genre)
         
         new_movie = Movie(
             title=title,
             release_date=parsed_date,
             synopsis=synopsis,
+            genre=genre,
             rating=rating,
             imgUrl=img_url,
             roster=roster,
@@ -121,6 +131,8 @@ def get_movies_rated():
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 10, type=int)
         search = request.args.get('search', '', type=str)
+        year = request.args.get('year', type=int)
+        genre = _normalize_text(request.args.get('genre', '', type=str))
         min_rating = request.args.get('min_rating', type=float)
         
         per_page = min(per_page, 100)
@@ -129,6 +141,16 @@ def get_movies_rated():
         
         if search:
             query = query.filter(Movie.title.ilike(f'%{search}%'))
+
+        if year is not None:
+            if year < 1800 or year > 2100:
+                return error_response(400, "Invalid year. Use a value between 1800 and 2100")
+            query = query.filter(db.extract('year', Movie.release_date) == year)
+
+        if genre:
+            query = query.filter(
+                db.func.lower(db.func.coalesce(Movie.genre, '')).like(f"%{genre.lower()}%")
+            )
         
         if min_rating is not None:
             query = query.filter(Movie.rating >= min_rating)
