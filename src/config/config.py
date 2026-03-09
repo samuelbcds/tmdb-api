@@ -1,24 +1,67 @@
-import os
+from os import environ, path
+from dotenv import load_dotenv
+from datetime import timedelta
+
+basedir = path.abspath(path.dirname(__file__))
+load_dotenv(path.join(basedir, '../../.env'))
 
 
 class Config:
-    DEBUG = False
-    JSON_SORT_KEYS = False
+    
+    # General Config
+    SECRET_KEY = environ.get('SECRET_KEY')
+    FLASK_APP = environ.get('FLASK_APP')
+    FLASK_ENV = environ.get('FLASK_ENV')
 
-
-class DevelopmentConfig(Config):
-    DEBUG = True
-    FLASK_ENV = 'development'
+    # Database
+    SQLALCHEMY_DATABASE_URI = environ.get("SQLALCHEMY_DATABASE_URI")
+    SQLALCHEMY_ECHO = False
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    
+    # JWT Configuration
+    JWT_SECRET_KEY = environ.get('JWT_SECRET_KEY', SECRET_KEY)
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=1)
+    JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=30)
+    
+    # JWT HTTP-only
+    JWT_TOKEN_LOCATION = ['cookies']
+    JWT_COOKIE_SECURE = False  
+    JWT_COOKIE_CSRF_PROTECT = False  
+    JWT_COOKIE_SAMESITE = 'Lax' 
+    JWT_ACCESS_COOKIE_NAME = 'access_token_cookie'
+    JWT_REFRESH_COOKIE_NAME = 'refresh_token_cookie'
+    JWT_ACCESS_COOKIE_PATH = '/'
+    JWT_REFRESH_COOKIE_PATH = '/'
+    JWT_SESSION_COOKIE = False  
+    
+    # CORS Configuration
+    CORS_SUPPORTS_CREDENTIALS = True
+    CORS_MAX_AGE = 3600
+    CORS_ORIGINS = [
+        'http://localhost:3000',
+        'http://localhost:5173',
+        'http://localhost:5174'
+    ]
 
 
 class ProductionConfig(Config):
+    
     DEBUG = False
-    FLASK_ENV = 'production'
+    TESTING = False
+    
+    # CORS 
+    CORS_ORIGINS = environ.get('CORS_ORIGINS', '').split(',')
+    
+    # JWT cookies HTTP-only
+    JWT_COOKIE_SECURE = True 
+    JWT_COOKIE_CSRF_PROTECT = True
+    JWT_COOKIE_SAMESITE = 'None'  
+    
+    # Database
+    SQLALCHEMY_ECHO = False
 
 
-# Mapeamento de configurações por ambiente
 config = {
-    'development': DevelopmentConfig,
     'production': ProductionConfig,
-    'default': DevelopmentConfig
+    'default': Config
 }
