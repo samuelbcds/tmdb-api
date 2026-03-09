@@ -6,6 +6,13 @@ basedir = path.abspath(path.dirname(__file__))
 load_dotenv(path.join(basedir, '../../.env'))
 
 
+def _parse_cors_origins(default_origins):
+    raw_origins = environ.get('CORS_ORIGINS', '').strip()
+    if not raw_origins:
+        return default_origins
+    return [origin.strip() for origin in raw_origins.split(',') if origin.strip()]
+
+
 class Config:
     
     # General Config
@@ -37,11 +44,12 @@ class Config:
     # CORS Configuration
     CORS_SUPPORTS_CREDENTIALS = True
     CORS_MAX_AGE = 3600
-    CORS_ORIGINS = [
+    CORS_ORIGINS = _parse_cors_origins([
         'http://localhost:3000',
         'http://localhost:5173',
-        'http://localhost:5174'
-    ]
+        'http://localhost:5174',
+        'http://localhost:8080'
+    ])
 
 
 class ProductionConfig(Config):
@@ -50,7 +58,7 @@ class ProductionConfig(Config):
     TESTING = False
     
     # CORS 
-    CORS_ORIGINS = environ.get('CORS_ORIGINS', '').split(',')
+    CORS_ORIGINS = _parse_cors_origins([])
     
     # JWT cookies HTTP-only
     JWT_COOKIE_SECURE = True 
